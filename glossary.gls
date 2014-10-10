@@ -1,0 +1,13 @@
+\newacronym{rowa}{ROWA}{Read-One/Write-All}
+\newacronym{wv}{WV}{Weighted Voting}
+\newacronym{mcs}{MYC}{Majority Consensus}
+\newacronym{ocs}{1SR}{one-copy serializability}
+\newacronym{mlv}{MLV}{Multi Level Voting}
+\newacronym{tl}{TL}{Triangle Lattice}
+\newacronym{gtq}{GTQ}{generalized tree quorum}
+\newacronym{mc}{MC}{MidCir}
+\newacronym{qw}{QW}{write quorum}
+\newacronym{qr}{QR}{read quorum}
+\newacronym{ll}{LL}{logical level}
+\newacronym{pnt}{PNT}{physical network topology}
+\newacronym{lt}{LT}{logical topologies}
