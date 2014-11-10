@@ -1,5 +1,5 @@
 function! WriteCorrect(args)
-python3 << EOF
+python << EOF
 import vim
 import glob
 import re
