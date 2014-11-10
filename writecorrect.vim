@@ -13,7 +13,6 @@ curWin = vim.current.window
 curBuf = vim.current.buffer
 curPos = curWin.cursor
 
-
 def langtooltofile(ret,f):
 	ignore = ["COMMA_PARENTHESIS_WHITESPACE"]
 	p = parseString(ret)
@@ -134,14 +133,19 @@ if __name__ == "__main__":
 		f.close()
 
 		langtool = subprocess.check_output(["languagetool", "--api", "-l", "en-US", senFile])
+		qqtool = subprocess.check_output(["qq", "-q", "-v", senFile])
 
 		outputFile = ".__outputFile.txt"
 		f = open(outputFile, "w")
 		langtooltofile(langtool, f)
+		if str(qqtool) != "b'-- .__sentenceFile.txt\\n'":
+			for i in qqtool[46:].decode("utf-8"):
+				f.write(i);
 		f.close()
 
 		vim.command(":set splitright")	
 		vim.command(":vsplit " + outputFile)	
+		vim.command(":AnsiEsc")
 
 EOF
 endfunction
