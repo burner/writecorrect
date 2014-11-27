@@ -19,9 +19,9 @@ def langtooltofile(ret,f):
 	for node in p.getElementsByTagName("error"):
 		if node.attributes["ruleId"].value in ignore:
 			continue
-		f.write("Error: {} Id: {}\nContext: {}\n\n".format(
+		f.write("Error: {} Id: {} Replacement: {}\nContext: {}\n\n".format(
 			node.attributes["msg"].value, node.attributes["ruleId"].value, 
-			node.attributes["context"].value))
+			node.attributes["replacements"].value, node.attributes["context"].value))
 
 def beginsWithUpper(string):
 	if len(string) > 0:
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 		f.close()
 
 		langtool = subprocess.check_output(["languagetool", "--api", "-l", "en-US", senFile])
-		qqtool = subprocess.check_output(["qq", "-q", "-v", senFile])
+		qqtool = subprocess.check_output(["/home/burner/Source/queequeg-0.91/qq", "-q", "-v", senFile])
 
 		outputFile = ".__outputFile.txt"
 		f = open(outputFile, "w")
@@ -145,6 +145,7 @@ if __name__ == "__main__":
 
 		vim.command(":set splitright")	
 		vim.command(":vsplit " + outputFile)	
+		vim.command(":set nospell")
 		vim.command(":AnsiEsc")
 
 EOF
