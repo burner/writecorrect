@@ -1,6 +1,9 @@
 function! WriteCorrect(args)
 python << EOF
 import vim
+import requests
+import time
+import random
 import glob
 import re
 import subprocess
@@ -51,7 +54,7 @@ def getCurrentSentance():
 	return buf
 
 def getGlossary():
-	print(os.getcwd())
+	#print(os.getcwd())
 	gls = glob.glob("*.gls")
 	if len(gls) == 0 or len(gls) > 1:
 		return []
@@ -69,16 +72,16 @@ def getGlossary():
 def wordSearchRest(line,match):
 	low = line.find(match)
 	if low == 0 and len(line) == len(match):
-		print(58)
+		#print(58)
 		return ("","")
 	elif low > 0 and len(line) == len(match)+low:
-		print(61)
+		#print(61)
 		return (line[:low], "")
 	elif low > 0 and len(line) != len(match)+low:
-		print(64)
+		#print(64)
 		return (line[:low], line[len(match)+low:])
 	elif low == 0 and len(line) != len(match)+low:
-		print(67)
+		#print(67)
 		return ("", line[len(match)+low:])
 
 def begin(line,bi):
@@ -97,9 +100,6 @@ def newGlossaryReplace(line,dic):
 	ret = []
 	glsStart = ["\\gls{", "\\glspl{", "\\Gls{", "\\Glspl{"]
 	for w in line.split():
-		if w.startswith("\\cite{"):
-			ret.append(w[w.find("}")+1:])
-			break
 		for r in glsStart:
 			idx = w.find(r)
 			if idx != -1:
@@ -112,32 +112,81 @@ def newGlossaryReplace(line,dic):
 
 	return " ".join(ret)
 
+def replaceFigureCite(sentence):
+	for t in ["\\cite{", "\\ref{"]:
+		idx = sentence.find(t)
+		while idx != -1:
+			random.seed(len(sentence))
+			eidx = sentence[idx:].find("}")
+			sentence = sentence[:idx] + str(random.randint(1,10)) + sentence[idx+eidx+1:]
+			idx = sentence.find(t);
+
+	return sentence
+
+def aAnCheck(sentence):
+	ret = ""
+	for i in ["a a", "a e", "a o", "a u", "a i", "A a", "A e", "A o", "A u", "A i"]:
+		oldIdx = 0
+		idx = sentence.find(i)
+		while idx != -1:
+			ret += "Vovel after 'a' at position {} '{}' replace with 'an'\n".format(idx+oldIdx,
+				sentence[idx+oldIdx:min(len(sentence), idx+oldIdx+10)])
+			oldIdx = idx
+			idx = sentence[oldIdx+3:].find(i)
+			
+	return ret
+
+def checkAtdRunning():
+	ps= subprocess.Popen("ps aux | grep java | grep atdconfig.sl", shell=True, stdout=subprocess.PIPE)
+	output = ps.stdout.read()
+	ps.stdout.close()
+	ps.wait()
+	#print output
+	return output.find("java -server") != -1
+
+def startAtd():
+	ps= subprocess.Popen("bash run.sh & disown", cwd="/home/burner/Source/atd/", stdout=None, shell=True)
+	time.sleep(2)
+
+def checkWithAtd(sentence):
+	sentencePlus = sentence.replace(' ', '+')
+	r = requests.get("http://127.0.0.1:1049/checkDocument?data="+sentencePlus)
+	print 154, "\n"
+	print r.text
+
 if __name__ == "__main__":
 	sen = getCurrentSentance()
 	glos = getGlossary()
+	sentence = newGlossaryReplace(sen, glos);
+	sentence = replaceFigureCite(sentence)
 	anArg = vim.eval("a:args")
 	if anArg == "sentence":
-		print(newGlossaryReplace(sen, glos))
+		print(sentence);
 	elif anArg == "speech":
-		tts = gTTS(text=newGlossaryReplace(sen,glos), lang='en')
+		tts = gTTS(text=sentence, lang='en')
 		name = ".speechdump.mp3"
 		tts.save(name)
 		import subprocess
 		player = subprocess.Popen(["mplayer", name], stdin=subprocess.PIPE, 
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	elif anArg == "check":
-		processSentence = newGlossaryReplace(sen,glos)
+		processSentence = sentence
+		atdRunning = checkAtdRunning()
+		if not atdRunning:
+			startAtd()
 		senFile = ".__sentenceFile.txt"
 		f = open(senFile, "w")
 		f.write(processSentence)
 		f.close()
 
+		checkWithAtd(sentence)
 		langtool = subprocess.check_output(["languagetool", "--api", "-l", "en-US", senFile])
 		qqtool = subprocess.check_output(["/home/burner/Source/queequeg-0.91/qq", "-q", "-v", senFile])
 
 		outputFile = ".__outputFile.txt"
 		f = open(outputFile, "w")
 		langtooltofile(langtool, f)
+		#f.write(aAnCheck(sentence))
 		if str(qqtool) != "b'-- .__sentenceFile.txt\\n'":
 			for i in qqtool[46:].decode("utf-8"):
 				f.write(i);
@@ -146,7 +195,7 @@ if __name__ == "__main__":
 		vim.command(":set splitright")	
 		vim.command(":vsplit " + outputFile)	
 		vim.command(":set nospell")
-		vim.command(":AnsiEsc")
+		#vim.command(":AnsiEsc")
 
 EOF
 endfunction
