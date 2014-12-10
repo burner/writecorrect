@@ -1,6 +1,7 @@
 function! WriteCorrect(args)
 python << EOF
 import vim
+import xml.dom
 import requests
 import time
 import random
@@ -148,11 +149,40 @@ def startAtd():
 	ps= subprocess.Popen("bash run.sh & disown", cwd="/home/burner/Source/atd/", stdout=None, shell=True)
 	time.sleep(2)
 
-def checkWithAtd(sentence):
+def getNodeText(node):
+	nodelist = node.childNodes
+	result = []
+	for node in nodelist:
+		if node.nodeType == node.TEXT_NODE:
+			result.append(node.data)
+	return ''.join(result)
+
+def checkWithAtd(sentence, output):
 	sentencePlus = sentence.replace(' ', '+')
 	r = requests.get("http://127.0.0.1:1049/checkDocument?data="+sentencePlus)
-	print 154, "\n"
-	print r.text
+	#print r.text
+	doc = minidom.parseString(r.text)
+	errors = doc.getElementsByTagName("error")
+	for i in errors:
+		#if getNodeText(i.getElementsByTagName("description")[0]) == "Complex Expression" or getNodeText(i.getElementsByTagName("description")[0]) == "Passive voice":
+		#	print "continue"
+		#	continue
+		
+		#print getNodeText(i.getElementsByTagName("string")[0])
+		#print getNodeText(i.getElementsByTagName("description")[0])
+		#print getNodeText(i.getElementsByTagName("precontext")[0])
+		output.write("Atd:\n{} {}\n{}\n{}\n".format(getNodeText(i.getElementsByTagName("precontext")[0]),
+			getNodeText(i.getElementsByTagName("string")[0]),
+			getNodeText(i.getElementsByTagName("description")[0]),
+			getNodeText(i.getElementsByTagName("url")[0])))
+
+		suggestions = i.getElementsByTagName("suggestions")
+		for j in suggestions:
+			options = j.getElementsByTagName("option")
+			for k in options:
+				output.write("Suggestions: {}\n".format(getNodeText(k)))
+
+		output.write("\n")
 
 if __name__ == "__main__":
 	sen = getCurrentSentance()
@@ -179,12 +209,12 @@ if __name__ == "__main__":
 		f.write(processSentence)
 		f.close()
 
-		checkWithAtd(sentence)
 		langtool = subprocess.check_output(["languagetool", "--api", "-l", "en-US", senFile])
 		qqtool = subprocess.check_output(["/home/burner/Source/queequeg-0.91/qq", "-q", "-v", senFile])
 
 		outputFile = ".__outputFile.txt"
 		f = open(outputFile, "w")
+		checkWithAtd(sentence, f)
 		langtooltofile(langtool, f)
 		#f.write(aAnCheck(sentence))
 		if str(qqtool) != "b'-- .__sentenceFile.txt\\n'":
